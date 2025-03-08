@@ -5,11 +5,11 @@ results/*
 tb_logger/*
 wandb/*
 tmp/*
-weights/*
+src/weights/*
 
 # Weights
-*.pth
-*.ckpt
+**/*.pth
+**/*.ckpt
 
 version.py
 
