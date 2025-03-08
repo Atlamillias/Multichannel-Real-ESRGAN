@@ -20,26 +20,32 @@ from realesrgan.archs.srvgg_arch import SRVGGNetCompact
 
 
 def get_video_meta_info(video_path):
-    ret = {}
+    info = ffmpeg.probe(video_path)
 
+    has_audio = any(stream['codec_type'] == 'audio' for stream in info['streams'])
 
-    vid_info = ffmpeg.probe(video_path)
-    streams = [stream for stream in vid_info['streams'] if stream['codec_type'] == 'video']
-    has_audio = any(stream['codec_type'] == 'audio' for stream in vid_info['streams'])
-    ret['width'] = streams[0]['width']
-    ret['height'] = streams[0]['height']
-    ret['fps'] = eval(streams[0]['avg_frame_rate'])
-    ret['audio'] = ffmpeg.input(video_path).audio if has_audio else None
+    stream = None
+    for stream in info['streams']:
+        if stream['codec_type'] == 'video':
+            break
+    assert stream is not None
+
+    md = {
+        'width' : stream['width'],
+        'height': stream['height'],
+        'fps'   : eval(stream['avg_frame_rate']),
+        'audio' : ffmpeg.input(video_path).audio if has_audio else None,
+    }
 
     try:
-        ret['nb_frames'] = int(streams[0]['nb_frames'])
+        md['nb_frames'] = int(stream['nb_frames'])
     except KeyError:
-        h, m, s  = streams[0]['tags']['DURATION'].split(':')
+        h, m, s  = stream['tags']['DURATION'].split(':')
         duration = (int(h) * 60 + int(m)) * 60 + float(s)
 
-        ret['nb_frames'] = int(ret['fps'] * duration)
+        md['nb_frames'] = int(md['fps'] * duration)
 
-    return ret
+    return md
 
 
 def get_sub_video(args, num_process, process_idx):
