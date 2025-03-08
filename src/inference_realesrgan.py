@@ -56,6 +56,7 @@ def main():
 
     # determine models according to model names
     args.model_name = args.model_name.split('.')[0]
+    model = netscale = file_url = None
     if args.model_name == 'RealESRGAN_x4plus':  # x4 RRDBNet model
         model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4)
         netscale = 4
@@ -83,6 +84,9 @@ def main():
             'https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesr-general-wdn-x4v3.pth',
             'https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesr-general-x4v3.pth'
         ]
+    assert model is not None
+    assert netscale is not None
+    assert file_url is not None
 
     # determine model paths
     if args.model_path is not None:
@@ -142,7 +146,9 @@ def main():
 
         try:
             if args.face_enhance:
-                _, _, output = face_enhancer.enhance(img, has_aligned=False, only_center_face=False, paste_back=True)
+                output = face_enhancer.enhance(  # pyright: ignore[reportPossiblyUnboundVariable]
+                    img, has_aligned=False, only_center_face=False, paste_back=True
+                )[2]
             else:
                 output, _ = upsampler.enhance(img, outscale=args.outscale)
         except RuntimeError as error:
@@ -159,7 +165,7 @@ def main():
                 save_path = os.path.join(args.output, f'{imgname}.{extension}')
             else:
                 save_path = os.path.join(args.output, f'{imgname}_{args.suffix}.{extension}')
-            cv2.imwrite(save_path, output)
+            cv2.imwrite(save_path, output)  # pyright: ignore
 
 
 if __name__ == '__main__':
