@@ -17,7 +17,7 @@ def RealESRGAN_upscaler(binary_data, args):
     num_in_ch = 3
     num_out_ch = num_in_ch
     seed_everything(args["seed"])
-    
+
     if model_name == "RealESRGAN_x4plus":  # модель x4 RRDBNet
         model = RRDBNet(num_in_ch = num_in_ch, num_out_ch = num_out_ch, num_feat = 64, num_block = 23, num_grow_ch = 32, scale = 4)
         netscale = 4
@@ -42,7 +42,7 @@ def RealESRGAN_upscaler(binary_data, args):
         model = SRVGGNetCompact(num_in_ch = num_in_ch, num_out_ch = num_out_ch, num_feat = 64, num_conv = 32, upscale = 4, act_type = "prelu")
         netscale = 2
         file_url = ["https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesr-general-wdn-x4v3.pth", "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesr-general-x4v3.pth"]
-    
+
     model_path = os.path.join('weights', model_name + '.pth')
     if not os.path.isfile(model_path):
         ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -90,7 +90,7 @@ def RealESRGAN_upscaler(binary_data, args):
 
 if __name__ == '__main__':
     params = {
-            "model": "realesr-animevideov3",    #Модель для обработки ("RealESRGAN_x4plus" - модель x4 RRDBNet, "RealESRNet_x4plus" - модель x4 RRDBNet, "RealESRGAN_x4plus_anime_6B" - модель x4 RRDBNet с 6 блоками, "RealESRGAN_x2plus" - модель x2 RRDBNet, "realesr-animevideov3" - модель x4 VGG-стиля (размера XS), "realesr-general-x4v3" - модель x4 VGG-стиля (размера S)) 
+            "model": "realesr-animevideov3",    #Модель для обработки ("RealESRGAN_x4plus" - модель x4 RRDBNet, "RealESRNet_x4plus" - модель x4 RRDBNet, "RealESRGAN_x4plus_anime_6B" - модель x4 RRDBNet с 6 блоками, "RealESRGAN_x2plus" - модель x2 RRDBNet, "realesr-animevideov3" - модель x4 VGG-стиля (размера XS), "realesr-general-x4v3" - модель x4 VGG-стиля (размера S))
             "denoise_strength": 0.0,            #Сила удаления шума. 0 для слабого удаления шума (шум сохраняется), 1 для сильного удаления шума. Используется только для модели "realesr-general-x4v3"
             "outscale": 2,                      #Величина того, во сколько раз увеличть разшрешение изображения (модель "RealESRGAN_x2plus" x2, остальные x4)
             "tile": 0,                          #Размер плитки, 0 для отсутствия плитки во время тестирования
@@ -105,7 +105,7 @@ if __name__ == '__main__':
             "seed": 42,                         #Начальное инициализирующее значение
             #на данный момент "max_dim": pow(1024, 2) ((для всех моделей, кроме "RealESRGAN_x2plus") и "outscale": 4), и pow(2048, 2) (для модели "RealESRGAN_x2plus" и "outscale": 2)
         }
-    
+
     with open("img.png", "rb") as f:
         init_img_binary_data = f.read()
     binary_data = RealESRGAN_upscaler(init_img_binary_data, params)
