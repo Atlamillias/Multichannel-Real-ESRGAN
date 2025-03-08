@@ -7,6 +7,7 @@ import os
 import shutil
 import subprocess
 import torch
+import ffmpeg
 from basicsr.archs.rrdbnet_arch import RRDBNet
 from basicsr.utils.download_util import load_file_from_url
 from os import path as osp
@@ -15,12 +16,7 @@ from tqdm import tqdm
 from realesrgan import RealESRGANer
 from realesrgan.archs.srvgg_arch import SRVGGNetCompact
 
-try:
-    import ffmpeg
-except ImportError:
-    import pip
-    pip.main(['install', '--user', 'ffmpeg-python'])
-    import ffmpeg
+
 
 
 def get_video_meta_info(video_path):
