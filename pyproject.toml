@@ -1,0 +1,33 @@
+[project]
+name = "real-esrgan"
+version = "0.3.1"
+description = ""
+readme = "README.md"
+requires-python = "==3.10.*"
+dependencies = [
+    'patch_ng',
+    'basicsr',
+    'facexlib',
+    'gfpgan',
+    'numpy==1.*',
+    'opencv-contrib-python',
+    'ffmpeg-python',
+    'Pillow',
+    'torch>=1.7',
+    'torchvision',
+    'tqdm',
+    'wget',
+]
+
+[tool.uv.sources]
+torch = [
+    { index = 'pytorch-cu118', marker = "sys_platform == 'linux' or sys_platform == 'win32'"}
+]
+torchvision = [
+    { index = 'pytorch-cu118', marker = "sys_platform == 'linux' or sys_platform == 'win32'"}
+]
+
+[[tool.uv.index]]
+name = 'pytorch-cu118'
+url = 'https://download.pytorch.org/whl/cu118'
+explicit = true
