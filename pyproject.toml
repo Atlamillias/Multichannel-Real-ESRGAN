@@ -9,11 +9,10 @@ dependencies = [
     'basicsr',
     'facexlib==0.3.*',
     'gfpgan==1.*',
-    'numpy==1.*',
     'opencv-contrib-python',
     'ffmpeg-python',
     'Pillow',
-    'torch>=1.7',
+    'torch>=2.0',
     'torchvision',
     'tqdm',
     'wget',
@@ -29,6 +28,9 @@ torch = [
 ]
 torchvision = [
     { index = 'pytorch-cu118', marker = "sys_platform == 'linux' or sys_platform == 'win32'"}
+]
+basicsr = [
+    { git = "https://github.com/XPixelGroup/BasicSR", rev = "8d56e3a045f9fb3e1d8872f92ee4a4f07f886b0a" }
 ]
 
 [[tool.uv.index]]
