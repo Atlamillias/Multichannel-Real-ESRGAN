@@ -17,3 +17,7 @@ def test_unetdiscriminatorsn():
         net.cuda()
         output = net(img.cuda())
         assert output.shape == (1, 1, 32, 32)
+    elif torch.mps.is_available():
+        net.mps()  # type: ignore
+        output = net(img.mps())  # type: ignore
+        assert output.shape == (1, 1, 32, 32)
