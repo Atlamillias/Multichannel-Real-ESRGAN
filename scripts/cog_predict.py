@@ -1,31 +1,17 @@
-# flake8: noqa
-# This file is used for deploying replicate models
-# running: cog predict -i img=@inputs/00017_gray.png -i version='General - v3' -i scale=2 -i face_enhance=True -i tile=0
-# push: cog push r8.im/xinntao/realesrgan
 
 import os
-
-os.system('pip install gfpgan')
-os.system('python setup.py develop')
-
 import cv2
 import shutil
 import tempfile
 import torch
-from edited_scripts.basicsr.archs.rrdbnet_arch import RRDBNet
-from edited_scripts.basicsr.archs.srvgg_arch import SRVGGNetCompact
-
+from basicsr.archs.rrdbnet_arch import RRDBNet
+from basicsr.archs.srvgg_arch import SRVGGNetCompact
+from cog import BasePredictor, Input, Path
+from gfpgan import GFPGANer
 from realesrgan.utils import RealESRGANer
-
-try:
-    from cog import BasePredictor, Input, Path
-    from gfpgan import GFPGANer
-except Exception:
-    print('please install cog and realesrgan package')
 
 
 class Predictor(BasePredictor):
-
     def setup(self):
         os.makedirs('output', exist_ok=True)
         # download weights
