@@ -20,6 +20,9 @@ dependencies = [
     "lightning==2.*",
 ]
 
+[dependency-groups]
+dev = ["cog==0.13.*"]
+
 [tool.uv.sources]
 torch = [
     { index = 'pytorch-cu118', marker = "sys_platform == 'linux' or sys_platform == 'win32'"}
