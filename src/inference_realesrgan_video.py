@@ -8,9 +8,9 @@ import shutil
 import subprocess
 import torch
 import ffmpeg
+from typing import Any, Literal
 from basicsr.archs.rrdbnet_arch import RRDBNet
 from basicsr.utils.download_util import load_file_from_url
-from os import path as osp
 from tqdm import tqdm
 
 from realesrgan import RealESRGANer
@@ -19,7 +19,10 @@ from realesrgan.archs.srvgg_arch import SRVGGNetCompact
 
 
 
-def get_video_meta_info(video_path):
+_VideoInfoDict = dict[Literal['width', 'height', 'fps', 'audio', 'nb_frames', 'duration'], Any]
+
+
+def get_video_meta_info(video_path: str) -> _VideoInfoDict:
     info = ffmpeg.probe(video_path)
 
     has_audio = any(stream['codec_type'] == 'audio' for stream in info['streams'])
@@ -30,39 +33,61 @@ def get_video_meta_info(video_path):
             break
     assert stream is not None
 
-    md = {
-        'width' : stream['width'],
-        'height': stream['height'],
-        'fps'   : eval(stream['avg_frame_rate']),
-        'audio' : ffmpeg.input(video_path).audio if has_audio else None,
+    md: _VideoInfoDict = {
+        'width'    : stream['width'],
+        'height'   : stream['height'],
+        'fps'      : eval(stream['avg_frame_rate']),
+        'audio'    : ffmpeg.input(video_path).audio if has_audio else None,
+        'nb_frames': None,
+        'duration' : None,
     }
 
     try:
-        md['nb_frames'] = int(stream['nb_frames'])
-    except KeyError:
         h, m, s  = stream['tags']['DURATION'].split(':')
-        duration = (int(h) * 60 + int(m)) * 60 + float(s)
+    except KeyError:
+        duration = None
+    else:
+        duration = md['duration'] = (int(h) * 60 + int(m)) * 60 + float(s)
+
+    try:
+        nb_frames = md['nb_frames'] = int(stream['nb_frames'])
+    except KeyError:
+        if duration is None:
+            raise ValueError(
+                f"'duration' and 'nb_frames' are both missing from {video_path!r}s metadata "
+                "— at least 1 is required for processing"
+            ) from None
 
         md['nb_frames'] = int(md['fps'] * duration)
+    else:
+        if duration is None:
+            md['duration'] = int(nb_frames / md['fps'])
 
     return md
 
 
-def get_sub_video(args, num_process, process_idx):
-    if num_process == 1:
+def get_sub_video(args, num_processes: int, process_id: int) -> str:
+    if num_processes == 1:
         return args.input
-    meta = get_video_meta_info(args.input)
-    duration = int(meta['nb_frames'] / meta['fps'])
-    part_time = duration // num_process
+
+    md = get_video_meta_info(args.input)
+
+    duration  = md['duration']
+    part_time = duration // num_processes
     print(f'duration: {duration}, part_time: {part_time}')
-    os.makedirs(osp.join(args.output, f'{args.video_name}_inp_tmp_videos'), exist_ok=True)
-    out_path = osp.join(args.output, f'{args.video_name}_inp_tmp_videos', f'{process_idx:03d}.mp4')
-    cmd = [
-        args.ffmpeg_bin, f'-i {args.input}', '-ss', f'{part_time * process_idx}',
-        f'-to {part_time * (process_idx + 1)}' if process_idx != num_process - 1 else '', '-async 1', out_path, '-y'
-    ]
-    print(' '.join(cmd))
-    subprocess.call(' '.join(cmd), shell=True)
+
+    out_dir = os.path.join(args.output, f'{args.video_name}_inp_tmp_videos')
+    os.makedirs(out_dir, exist_ok=True)
+
+    out_path = os.path.join(out_dir, f'{process_id:03d}.mp4')
+
+    cmd = ' '.join((
+        args.ffmpeg_bin, f'-i {args.input}', '-ss', f'{part_time * process_id}',
+        f'-to {part_time * (process_id + 1)}' if process_id != num_processes - 1 else '', '-async 1', out_path, '-y'
+    ))
+    print(cmd)
+    subprocess.call(cmd, shell=True)
+
     return out_path
 
 
@@ -289,11 +314,11 @@ def inference_video(args, video_save_path, device=None, total_workers=1, worker_
 
 
 def run(args):
-    args.video_name = osp.splitext(os.path.basename(args.input))[0]
-    video_save_path = osp.join(args.output, f'{args.video_name}_{args.suffix}.mp4')
+    args.video_name = os.path.splitext(os.path.basename(args.input))[0]
+    video_save_path = os.path.join(args.output, f'{args.video_name}_{args.suffix}.mp4')
 
     if args.extract_frame_first:
-        tmp_frames_folder = osp.join(args.output, f'{args.video_name}_inp_tmp_frames')
+        tmp_frames_folder = os.path.join(args.output, f'{args.video_name}_inp_tmp_frames')
         os.makedirs(tmp_frames_folder, exist_ok=True)
         os.system(f'ffmpeg -i {args.input} -qscale:v 1 -qmin 1 -qmax 1 -vsync 0  {tmp_frames_folder}/frame%08d.png')
         args.input = tmp_frames_folder
@@ -306,10 +331,10 @@ def run(args):
 
     ctx = torch.multiprocessing.get_context('spawn')
     pool = ctx.Pool(num_process)
-    os.makedirs(osp.join(args.output, f'{args.video_name}_out_tmp_videos'), exist_ok=True)
+    os.makedirs(os.path.join(args.output, f'{args.video_name}_out_tmp_videos'), exist_ok=True)
     pbar = tqdm(total=num_process, unit='sub_video', desc='inference')
     for i in range(num_process):
-        sub_video_save_path = osp.join(args.output, f'{args.video_name}_out_tmp_videos', f'{i:03d}.mp4')
+        sub_video_save_path = os.path.join(args.output, f'{args.video_name}_out_tmp_videos', f'{i:03d}.mp4')
         pool.apply_async(
             inference_video,
             args=(args, sub_video_save_path, torch.device(i % num_gpus), num_process, i),
@@ -329,9 +354,9 @@ def run(args):
     ]
     print(' '.join(cmd))
     subprocess.call(cmd)
-    shutil.rmtree(osp.join(args.output, f'{args.video_name}_out_tmp_videos'))
-    if osp.exists(osp.join(args.output, f'{args.video_name}_inp_tmp_videos')):
-        shutil.rmtree(osp.join(args.output, f'{args.video_name}_inp_tmp_videos'))
+    shutil.rmtree(os.path.join(args.output, f'{args.video_name}_out_tmp_videos'))
+    if os.path.exists(os.path.join(args.output, f'{args.video_name}_inp_tmp_videos')):
+        shutil.rmtree(os.path.join(args.output, f'{args.video_name}_inp_tmp_videos'))
     os.remove(f'{args.output}/{args.video_name}_vidlist.txt')
 
 
@@ -402,7 +427,7 @@ def main():
     run(args)
 
     if args.extract_frame_first:
-        tmp_frames_folder = osp.join(args.output, f'{args.video_name}_inp_tmp_frames')
+        tmp_frames_folder = os.path.join(args.output, f'{args.video_name}_inp_tmp_frames')
         shutil.rmtree(tmp_frames_folder)
 
 
