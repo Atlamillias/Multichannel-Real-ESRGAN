@@ -5,7 +5,6 @@ description = ""
 readme = "README.md"
 requires-python = "==3.10.*"
 dependencies = [
-    'patch_ng',
     'basicsr',
     'facexlib==0.3.*',
     'gfpgan==1.*',
